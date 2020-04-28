@@ -14,7 +14,7 @@ logger = PresidioLogger("presidio")
 
 class AnalyzerEngine(analyze_pb2_grpc.AnalyzeServiceServicer):
 
-    def __init__(self, registry=None, nlp_engine=None,
+    def __init__(self, registry=None, nlp_engine=None, enable_nlp_engine=True,
                  app_tracer=None, enable_trace_pii=False,
                  default_score_threshold=None):
         """
@@ -30,11 +30,14 @@ class AnalyzerEngine(analyze_pb2_grpc.AnalyzeServiceServicer):
         :param default_score_threshold: Minimum confidence value
         for detected entities to be returned
         """
-        if not nlp_engine:
-            logger.info("nlp_engine not provided. Creating new "
-                        "SpacyNlpEngine instance")
-            from presidio_analyzer.nlp_engine import SpacyNlpEngine
-            nlp_engine = SpacyNlpEngine()
+        if not enable_nlp_engine:
+            logger.info("nlp_engine disabled")
+        else:
+            if not nlp_engine:
+                logger.info("nlp_engine not provided. Creating new "
+                            "SpacyNlpEngine instance")
+                from presidio_analyzer.nlp_engine import SpacyNlpEngine
+                nlp_engine = SpacyNlpEngine()
         if not registry:
             logger.info("Recognizer registry not provided. "
                         "Creating default RecognizerRegistry instance")
@@ -134,7 +137,7 @@ class AnalyzerEngine(analyze_pb2_grpc.AnalyzeServiceServicer):
         filtered_results = []
 
         for result in results:
-            if result.score == 0:
+            if result.score == 0: # Fixme: Leaky abstraction wrt __remove_low_scores
                 continue
 
             valid_result = True
@@ -212,7 +215,10 @@ class AnalyzerEngine(analyze_pb2_grpc.AnalyzeServiceServicer):
 
         # run the nlp pipeline over the given text, store the results in
         # a NlpArtifacts instance
-        nlp_artifacts = self.nlp_engine.process_text(text, language)
+        if self.nlp_engine:
+            nlp_artifacts = self.nlp_engine.process_text(text, language)
+        else:
+            nlp_artifacts = None
 
         if self.enable_trace_pii and trace:
             self.app_tracer.trace(correlation_id, "nlp artifacts:"
