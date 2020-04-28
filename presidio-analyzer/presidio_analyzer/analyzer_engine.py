@@ -11,10 +11,9 @@ from presidio_analyzer.nlp_engine import NLP_ENGINES
 logger = PresidioLogger("presidio")
 
 
-# pylint: disable=no-member
 class AnalyzerEngine(analyze_pb2_grpc.AnalyzeServiceServicer):
 
-    def __init__(self, registry=None, nlp_engine=None,
+    def __init__(self, registry=None, nlp_engine=None, enable_nlp_engine=True,
                  app_tracer=None, enable_trace_pii=False,
                  default_score_threshold=None, use_recognizer_store=False,
                  default_language="en"):
@@ -35,10 +34,13 @@ class AnalyzerEngine(analyze_pb2_grpc.AnalyzeServiceServicer):
         responses from custom recognizers as well
         (only applicable for the full Presidio service)
         """
-        if not nlp_engine:
-            logger.info("nlp_engine not provided. Creating new "
-                        "SpacyNlpEngine instance")
-            nlp_engine = NLP_ENGINES["spacy"]()
+        if not enable_nlp_engine:
+            logger.info("nlp_engine disabled")
+        else:
+            if not nlp_engine:
+                logger.info("nlp_engine not provided. Creating new "
+                            "SpacyNlpEngine instance")
+                nlp_engine = NLP_ENGINES["spacy"]()
         if not registry:
             logger.info("Recognizer registry not provided. "
                         "Creating default RecognizerRegistry instance")
@@ -134,6 +136,7 @@ class AnalyzerEngine(analyze_pb2_grpc.AnalyzeServiceServicer):
     @staticmethod
     def __remove_duplicates(results):
         """
+        TODO More robust support for comparing grouped results (with/without indicies).
         Removes each result which has a span contained in a
         result's span with a higher score
         :param results: List[RecognizerResult]
@@ -146,7 +149,7 @@ class AnalyzerEngine(analyze_pb2_grpc.AnalyzeServiceServicer):
         filtered_results = []
 
         for result in results:
-            if result.score == 0:
+            if result.score == 0: # Fixme: Leaky abstraction wrt __remove_low_scores
                 continue
 
             valid_result = True
@@ -226,7 +229,10 @@ class AnalyzerEngine(analyze_pb2_grpc.AnalyzeServiceServicer):
 
         # run the nlp pipeline over the given text, store the results in
         # a NlpArtifacts instance
-        nlp_artifacts = self.nlp_engine.process_text(text, language)
+        if self.nlp_engine:
+            nlp_artifacts = self.nlp_engine.process_text(text, language)
+        else:
+            nlp_artifacts = None
 
         if self.enable_trace_pii and trace:
             self.app_tracer.trace(correlation_id, "nlp artifacts:"

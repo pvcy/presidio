@@ -2,7 +2,8 @@ import pytest
 
 from tests import assert_result_within_score_range
 from presidio_analyzer.predefined_recognizers import IpRecognizer
-
+from pandas import Series
+from presidio_analyzer import Column
 
 @pytest.fixture(scope="module")
 def recognizer():
@@ -45,3 +46,31 @@ def test_all_ips(
         assert_result_within_score_range(
             res, entities[0], st_pos, fn_pos, st_score, fn_score
         )
+
+    # Column tests
+
+def test_column_valid_ipv4_no_title(recognizer, entities):
+    col = Column(Series([
+        '192.168.0.1',
+        '192.168.1.100'
+    ]))
+
+    result_group = recognizer.analyze(col, entities)
+    assert len(result_group.recognizer_results) == 2
+    assert_result_within_score_range(result_group.recognizer_results[0],
+        entities[0], 0, 11, 0.6, 0.81)
+    assert_result_within_score_range(result_group.recognizer_results[1],
+        entities[0], 0, 13, 0.6, 0.81)
+
+def test_column_valid_ipv4_with_relevant_title(recognizer, entities):
+    col = Column(Series([
+        '192.168.0.1',
+        '192.168.1.100'
+    ], name='IP'))
+
+    result_group = recognizer.analyze(col, entities)
+    assert len(result_group.recognizer_results) == 2
+    assert_result_within_score_range(result_group.recognizer_results[0],
+        entities[0], 0, 11, 1, 1)
+    assert_result_within_score_range(result_group.recognizer_results[1],
+        entities[0], 0, 13, 1, 1)

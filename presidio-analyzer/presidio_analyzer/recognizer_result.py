@@ -4,10 +4,12 @@ from . import AnalysisExplanation
 class RecognizerResult:
 
     def __init__(self, entity_type, start, end, score,
-                 analysis_explanation: AnalysisExplanation = None):
+                 analysis_explanation: AnalysisExplanation = None,
+                 **kwargs):
         """
         Recognizer Result represents the findings of the detected entity
         of the analyzer in the text.
+        :param index: corresponding source text index
         :param entity_type: the type of the entity
         :param start: the start location of the detected entity
         :param end: the end location of the detected entity
@@ -15,6 +17,7 @@ class RecognizerResult:
         :param analysis_explanation: contains the explanation of why this
                                      entity was identified
         """
+        self.index = kwargs.get('index', None)
         self.entity_type = entity_type
         self.start = start
         self.end = end
@@ -62,3 +65,27 @@ class RecognizerResult:
         """
 
         return self.start >= other.start and self.end <= other.end
+
+
+class RecognizerResultGroup(RecognizerResult):
+    """
+    Class representing grouped results (i.e. column).
+    TODO
+        Determine behavior for comparisons across sets.
+        Extend RecognizerResult to handle column-specific metadata (i.e. index)
+        Temp solution:
+        - Initialize Base class attributes to best scoring result from group
+        - Short circuit all overlap-type operations to False
+    """
+
+    def __init__(self, recognizer_results):
+        self.recognizer_results = recognizer_results
+        best_scoring = max(recognizer_results, key=lambda r: r.score)
+        super().__init__(**best_scoring.__dict__)
+
+    def to_json(self):
+        return str({ 'recognizer_results' : [str(r) for r in self.recognizer_results]})
+
+    # TODO def intersects(self, other):
+
+    # TODO def contained_in(self, other):

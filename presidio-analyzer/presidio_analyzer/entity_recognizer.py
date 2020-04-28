@@ -49,12 +49,12 @@ class EntityRecognizer:
         """
 
     @abstractmethod
-    def analyze(self, text, entities, nlp_artifacts):
+    def analyze(self, entity_source, entities, nlp_artifacts):
         """
         This is the core method for analyzing text, assuming entities are
         the subset of the supported entities types.
 
-        :param text: The text to be analyzed
+        :param entity_source: TODO The text to be analyzed
         :param entities: The list of entities to be detected
         :param nlp_artifacts: Value of type NlpArtifacts.
         A group of attributes which are the result of
@@ -94,7 +94,7 @@ class EntityRecognizer:
     def from_dict(cls, entity_recognizer_dict):
         return cls(**entity_recognizer_dict)
 
-    def enhance_using_context(self, text, raw_results,
+    def enhance_using_context(self, entity_source, raw_results,
                               nlp_artifacts, recognizer_context_words):
         """ using the surrounding words of the actual word matches, look
             for specific strings that if found contribute to the score
@@ -126,7 +126,7 @@ class EntityRecognizer:
         for result in results:
             # extract lemmatized context from the surrounding of the match
 
-            word = text[result.start:result.end]
+            word = entity_source.text[result.index][result.start:result.end]
 
             surrounding_words = self.__extract_surrounding_words(
                 nlp_artifacts=nlp_artifacts,

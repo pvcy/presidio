@@ -1,10 +1,12 @@
 import datetime
 
+from typing import Mapping
 from presidio_analyzer import LocalRecognizer, \
     Pattern, \
     RecognizerResult, \
     EntityRecognizer, \
-    AnalysisExplanation
+    AnalysisExplanation, \
+    EntitySource, Text
 
 # Import 're2' regex engine if installed, if not- import 'regex'
 try:
@@ -16,10 +18,13 @@ except ImportError:
 class PatternRecognizer(LocalRecognizer):
 
     def __init__(self, supported_entity, name=None,
-                 supported_language='en', patterns=None,
+                 supported_language='en',
+                 patterns=None,
+                 title_patterns=None,
                  black_list=None, context=None, version="0.0.1"):
         """
-            :param patterns: the list of patterns to detect
+            :param patterns: the list of patterns to detect entity
+            :param title_patterns: list of patterns to detect entity-related source title
             :param black_list: the list of words to detect
             :param context: list of context words
         """
@@ -36,14 +41,13 @@ class PatternRecognizer(LocalRecognizer):
                          supported_language=supported_language,
                          name=name,
                          version=version)
-        if patterns is None:
-            self.patterns = []
-        else:
-            self.patterns = patterns
+
+        self.patterns = [] or patterns
+        self.title_patterns = [] or title_patterns
         self.context = context
 
         if black_list:
-            black_list_pattern = self.__black_list_to_regex(
+            black_list_pattern = PatternRecognizer.__black_list_to_regex(
                 black_list)
             self.patterns.append(black_list_pattern)
             self.black_list = black_list
@@ -54,23 +58,48 @@ class PatternRecognizer(LocalRecognizer):
         pass
 
     # pylint: disable=unused-argument,arguments-differ
-    def analyze(self, text, entities, nlp_artifacts=None, regex_flags=None):
+    def analyze(self, entity_source, entities, nlp_artifacts=None, regex_flags=None):
         results = []
+        entity_source = self.__standardize_source(entity_source)
 
         if self.patterns:
-            pattern_result = self.__analyze_patterns(text, regex_flags)
+            pattern_result = self.__analyze_patterns(
+                entity_source, self.patterns, self.validate_result, self.invalidate_result)
 
-            if pattern_result and self.context:
-                # try to improve the results score using the surrounding
-                # context words
-                enhanced_result = \
-                  self.enhance_using_context(
-                      text, pattern_result, nlp_artifacts, self.context)
-                results.extend(enhanced_result)
-            elif pattern_result:
-                results.extend(pattern_result)
+            if pattern_result:
+                if entity_source.text_has_context and self.context:
+                    # try to improve the results score using the surrounding
+                    # context words
+                    enhanced_result = \
+                        self.enhance_using_context(
+                            entity_source, pattern_result, nlp_artifacts, self.context)
+                    results.extend(enhanced_result)
+                else:
+                    results.extend(pattern_result)
 
-        return results
+                if entity_source.title and self.title_patterns:
+                    # Refine results scores using source title and title patterns
+                    results = self.__enhance_using_patterns(
+                        Text(text=entity_source.title, text_has_context=False),
+                        results, self.title_patterns,
+                        flags=re.IGNORECASE | re.DOTALL | re.MULTILINE
+                    )
+
+        return entity_source.postprocess_results(results)
+
+    @staticmethod
+    def __standardize_source(source):
+        """
+        Upgrade strings to Text (maintaining backward compatibility,
+        passthrough other EntitySources, fail unsupported source types.
+        """
+        if issubclass(type(source), EntitySource):
+            return source
+        elif type(source) is str:
+            return Text(source)
+        else:
+            raise ValueError(f"Unsupported type ({type(source)}) used"
+                             "as input to PatternRecognizer analyzer.")
 
     @staticmethod
     def __black_list_to_regex(black_list):
@@ -123,66 +152,78 @@ class PatternRecognizer(LocalRecognizer):
                                           validation_result=validation_result)
         return explanation
 
-    def __analyze_patterns(self, text, flags=None):
+    def __analyze_patterns(self, entity_source: Mapping[int, str], patterns,
+                           validator=None, invalidator=None, flags=None):
         """
         Evaluates all patterns in the provided text, including words in
          the provided blacklist
 
-        :param text: text to analyze
+        :param entity_source: text to analyze
         :param flags: regex flags
+        :param entity_source: EntitySource to analyze
+        :param patterns: Patterns to match against source
+        :param validator: Function for validating match
+        :param invalidator: Function for invalidating match
         :return: A list of RecognizerResult
+
+        TODO:
+            Should text list handling move up to AnalyzerEngine?
+            Is there a more OOP way to reuse this logic across contexts?
         """
         flags = flags if flags else re.DOTALL | re.MULTILINE
         results = []
-        for pattern in self.patterns:
-            match_start_time = datetime.datetime.now()
-            matches = re.finditer(
-                pattern.regex,
-                text,
-                flags=flags)
-            match_time = datetime.datetime.now() - match_start_time
-            self.logger.debug('--- match_time[%s]: %s.%s seconds',
-                              pattern.name,
-                              match_time.seconds,
-                              match_time.microseconds)
-
-            for match in matches:
-                start, end = match.span()
-                current_match = text[start:end]
-
-                # Skip empty results
-                if current_match == '':
-                    continue
-
-                score = pattern.score
-
-                validation_result = self.validate_result(current_match)
-                description = self.build_regex_explanation(
-                    self.name,
-                    pattern.name,
+        for i, t in entity_source.items():
+            for pattern in patterns:
+                match_start_time = datetime.datetime.now()
+                matches = re.finditer(
                     pattern.regex,
-                    score,
-                    validation_result
-                )
-                pattern_result = RecognizerResult(
-                    self.supported_entities[0],
-                    start,
-                    end,
-                    score,
-                    description)
+                    t,
+                    flags=flags)
+                match_time = datetime.datetime.now() - match_start_time
+                self.logger.debug('--- match_time[%s]: %s.%s seconds',
+                                  pattern.name,
+                                  match_time.seconds,
+                                  match_time.microseconds)
 
-                if validation_result is not None:
-                    if validation_result:
-                        pattern_result.score = EntityRecognizer.MAX_SCORE
-                    else:
+                for match in matches:
+                    start, end = match.span()
+                    current_match = t[start:end]
+
+                    # Skip empty results
+                    if current_match == '':
+                        continue
+
+                    score = pattern.score
+
+                    validation_result = validator(current_match) if validator else None
+                    description = self.build_regex_explanation(
+                        self.name,
+                        pattern.name,
+                        pattern.regex,
+                        score,
+                        validation_result
+                    )
+                    pattern_result = RecognizerResult(
+                        self.supported_entities[0],
+                        start,
+                        end,
+                        score,
+                        analysis_explanation=description,
+                        index=i
+                    )
+
+                    if validation_result is not None:
+                        if validation_result:
+                            pattern_result.score = EntityRecognizer.MAX_SCORE
+                        else:
+                            pattern_result.score = EntityRecognizer.MIN_SCORE
+
+                    invalidation_result = invalidator(current_match) if invalidator else None
+                    if invalidation_result is not None and invalidation_result:
                         pattern_result.score = EntityRecognizer.MIN_SCORE
 
-                invalidation_result = self.invalidate_result(current_match)
-                if invalidation_result is not None and invalidation_result:
-                    pattern_result.score = EntityRecognizer.MIN_SCORE
-
-                if pattern_result.score > EntityRecognizer.MIN_SCORE:
-                    results.append(pattern_result)
+                    if pattern_result.score > EntityRecognizer.MIN_SCORE:
+                        results.append(pattern_result)
 
         return results
 
@@ -205,3 +246,27 @@ class PatternRecognizer(LocalRecognizer):
             entity_recognizer_dict['patterns'] = patterns_list
 
         return cls(**entity_recognizer_dict)
+
+    def __enhance_using_patterns(self, source_text, results, patterns, flags=None):
+        """
+         TODO More accurate name than "enhance" => enrich/improve/refine
+        """
+        if not source_text or not patterns:
+            # Nothing to match or nothing to match with => passthrough
+            return results
+
+        enhancement_results = self.__analyze_patterns(source_text, patterns, flags=flags)
+        if enhancement_results and source_text:
+            best_match = max(enhancement_results, key=lambda r: r.score)
+            best_score = best_match.score
+            for result in results:
+                result.score = min(
+                    result.score + best_score,
+                    EntityRecognizer.MAX_SCORE
+                )
+                result.analysis_explanation.set_supportive_context_word(source_text) # NB Leaky abstraction
+                result.analysis_explanation.set_improved_score(result.score)
+
+            return results # No results are returned if nothing matches
+            # TODO Demote result scores on no match instead of remove?
+            # TODO Decouple Column-specific behavior (removing/demoting score) from this function.
