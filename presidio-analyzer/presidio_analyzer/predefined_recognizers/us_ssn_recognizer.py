@@ -34,12 +34,15 @@ class UsSsnRecognizer(PatternRecognizer):
         supported_entity="US_SSN",
     ):
         patterns = patterns if patterns else self.PATTERNS
+        title_patterns = [Pattern('SSN Title (strong)', r'^(SSN)$', 0.7),
+                          Pattern('SSN Title (medium)', r'^(social)$', 0.5)]
         context = context if context else self.CONTEXT
         super().__init__(
             supported_entity=supported_entity,
             patterns=patterns,
             context=context,
             supported_language=supported_language,
+            title_patterns=title_patterns
         )
 
     def invalidate_result(self, pattern_text):

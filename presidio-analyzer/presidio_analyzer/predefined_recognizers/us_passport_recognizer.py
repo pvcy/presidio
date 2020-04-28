@@ -22,9 +22,13 @@ class UsPassportRecognizer(PatternRecognizer):
     ):
         context = context if context else self.CONTEXT
         patterns = patterns if patterns else self.PATTERNS
+        title_patterns = [Pattern('Passport title (strong)',
+                                  r'\b(passport(\snum(ber)?|#)?)\b',
+                                  0.7)]
         super().__init__(
             supported_entity=supported_entity,
             patterns=patterns,
+            title_patterns=title_patterns,
             context=context,
             supported_language=supported_language,
         )

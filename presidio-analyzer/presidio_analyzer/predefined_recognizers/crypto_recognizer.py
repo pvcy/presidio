@@ -24,10 +24,14 @@ class CryptoRecognizer(PatternRecognizer):
         supported_entity="CRYPTO",
     ):
         patterns = patterns if patterns else self.PATTERNS
+        title_patterns = [Pattern('Crypto Title (Strong)',  # language=RegExp
+                                  r'\b(wallet|btc|bitcoin|crypto)\b',
+                                  0.7)]
         context = context if context else self.CONTEXT
         super().__init__(
             supported_entity=supported_entity,
             patterns=patterns,
+            title_patterns=title_patterns,
             context=context,
             supported_language=supported_language,
         )

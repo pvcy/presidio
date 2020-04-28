@@ -9,6 +9,7 @@ from presidio_analyzer import (
     RecognizerResult,
     RecognizerRegistry,
     AnalysisExplanation,
+    RecognizerResultGroup
 )
 from presidio_analyzer import PresidioLogger
 from presidio_analyzer.protobuf_models.analyze_pb2 import (
@@ -739,3 +740,29 @@ def test_get_recognizers_returns_supported_language():
     response = analyze_engine.GetAllRecognizers(request, None)
     # there is only 1 mocked russian recognizer
     assert len(response) == 1
+
+
+# Column tests
+
+def test_column_remove_duplicates():
+    # test same result with different score will return only the highest
+    args_default = dict(start=0, end=5, entity_type="x",
+                     analysis_explanation=AnalysisExplanation(
+                         recognizer='test',
+                         original_score=0,
+                         pattern_name='test',
+                         pattern='test',
+                         validation_result=None))
+    result_set_lower = []
+    result_set_higher = []
+    for i in range(2):
+        result_set_lower.append(
+            RecognizerResult(**{**args_default, 'score': 0.1, 'index': i}))
+        result_set_higher.append(
+            RecognizerResult(**{**args_default, 'score': 0.5, 'index': i}))
+
+    arr = [RecognizerResultGroup(result_set_lower),
+           RecognizerResultGroup(result_set_higher)]
+    results = AnalyzerEngine._AnalyzerEngine__remove_duplicates(arr)
+    assert len(results) == 1
+    assert results[0].score == 0.5

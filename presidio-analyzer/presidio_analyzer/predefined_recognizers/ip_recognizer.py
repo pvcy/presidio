@@ -30,10 +30,14 @@ class IpRecognizer(PatternRecognizer):
         supported_entity="IP_ADDRESS",
     ):
         patterns = patterns if patterns else self.PATTERNS
+        title_patterns = [Pattern('Any IP Address title (strong)',  # language=RegExp
+                                  r'\b(ipv?[46]?)\b',
+                                  0.7)]
         context = context if context else self.CONTEXT
         super().__init__(
             supported_entity=supported_entity,
             patterns=patterns,
+            title_patterns=title_patterns,
             context=context,
             supported_language=supported_language,
         )

@@ -2,7 +2,8 @@ import pytest
 
 from tests import assert_result
 from presidio_analyzer.predefined_recognizers.iban_recognizer import IbanRecognizer
-
+from pandas import Series
+from presidio_analyzer import Column
 
 @pytest.fixture(scope="module")
 def recognizer():
@@ -356,3 +357,91 @@ def test_all_ibans(iban, expected_len, expected_res, recognizer, entities, max_s
     assert len(results) == expected_len
     for res, (start, end) in zip(results, expected_res):
         assert_result(res, entities[0], start, end, max_score)
+
+# Column tests
+
+# TODO
+#  - IBAN recognizer now has its own analyze_patterns() that iterates
+#  overlapping matching patterns and returns the first one that matches.
+#  This is done to prevent an IBAN pattern from matching a false positive
+#  on top of a valid match, but failing to match by only looking at the
+#  last match.
+#  - This prevents the tabular/entity_source extensions built into
+#  pattern_recognizer.py from firing by default and breaks tabular.
+#  - Fix 1 (ideal): move group match iteration up a level into
+#  pattern_recognizer.py, generalizing the problem (DRYing IBAN recognizer).
+#  - Fix 2: Duplicate tabular extension code in IBAN recognizer.
+
+# def test_column_iban_mixed_valid_no_title(recognizer, entities, max_score):
+#     col = Column(Series([
+#         'AL47212110090000000235698741',         # AL
+#         'AD12 0001 2030 2003 5910 0100',        # AD
+#         'AT61 1904 3002 3457 3201',             # AT
+#         'BA39 1290 0794 0102 8494',             # BA
+#         'BR9700360305000010009795493P1',        # BR
+#         'BG80 BNBG 9661 1020 3456 78',          # BG
+#         'CR05 0152 0200 1026 2840 66',          # CR
+#         'HR1210010051863000160',                # HR
+#         'CY17002001280000001200527600',         # CY
+#         'CZ6508000000192000145399',             # CZ
+#         'DK5000400440116243',                   # DK
+#         'DO28BAGR00000001212453611324',         # DO
+#         'TL38 0080 0123 4567 8910 157',         # TL
+#         'EE38 2200 2210 2014 5685',             # EE
+#         'FO62 6460 0001 6316 34',               # FO
+#         'FI2112345600000785',                   # FI
+#         'FR1420041010050500013M02606',          # FR
+#         'GE29NB0000000101904917',               # GE
+#         'DE89370400440532013000',               # DE
+#         'GI75 NWBK 0000 0000 7099 453',         # GI
+#         'GR16 0110 1250 0000 0001 2300 695',    # GR
+#         'GL89 6471 0001 0002 06',               # GL
+#         'GT82 TRAJ 0102 0000 0012 1002 9690',   # GT
+#         'HU42 1177 3016 1111 1018 0000 0000',   # HU
+#         'IS140159260076545510730339',           # IS
+#         'IE29 AIBK 9311 5212 3456 78',          # IE
+#         'IL62 0108 0000 0009 9999 999',         # IL
+#         'IT60 X054 2811 1010 0000 0123 456',    # IT
+#         'JO94CBJO0010000000000131000302',       # JO
+#         'KZ86125KZT5004100100',                 # KZ
+#         'XK05 1212 0123 4567 8906',             # XK
+#         'KW81CBKU0000000000001234560101',       # KW
+#         'LV80 BANK 0000 4351 9500 1',           # LV
+#         'LB62 0999 0000 0001 0019 0122 9114',   # LB
+#         'LI21 0881 0000 2324 013A A',           # LI
+#         'LT12 1000 0111 0100 1000',             # LT
+#         'LU28 0019 4006 4475 0000',             # LU
+#         'MT84MALT011000012345MTLCAST001S',      # MT
+#         'MR1300020001010000123456753',          # MR
+#         'MC58 1122 2000 0101 2345 6789 030',    # MC
+#         'ME25 5050 0001 2345 6789 51',          # ME
+#         'NL91 ABNA 0417 1643 00',               # NL
+#         'MK07 2501 2000 0058 984',              # MK
+#         'NO93 8601 1117 947',                   # NO
+#         'PK36 SCBL 0000 0011 2345 6702',        # PK
+#         'PS92PALS000000000400123456702',        # PS
+#         'PL61 1090 1014 0000 0712 1981 2874',   # PL
+#         'PT50000201231234567890154',            # PT
+#         'QA58DOHB00001234567890ABCDEFG',        # QA
+#         'RO49 AAAA 1B31 0075 9384 0000',        # RO
+#         'SM86 U032 2509 8000 0000 0270 100',    # SM
+#         'SA03 8000 0000 6080 1016 7519',        # SA
+#         'RS35 2600 0560 1001 6113 79',          # RS
+#         'SK31 1200 0000 1987 4263 7541',        # SK
+#         'SI56 2633 0001 2039 086',              # SI
+#         'ES9121000418450200051332',             # ES
+#         'SE45 5000 0000 0583 9825 7466',        # SE
+#         'CH93 0076 2011 6238 5295 7',           # CH
+#         'TN59 1000 6035 1835 9847 8831',        # TN
+#         'TR33 0006 1005 1978 6457 8413 26',     # TR
+#         'AE07 0331 2345 6789 0123 456',         # AE
+#         'GB29 NWBK 6016 1331 9268 19',          # GB
+#         'VA59 0011 2300 0012 3456 78',          # VA
+#         'VG96 VPVG 0000 0123 4567 8901'         # VG
+#     ]))
+#
+#     results = recognizer.analyze(col, entities)
+#
+#     assert len(results.recognizer_results) == 64
+#     for r in results.recognizer_results:
+#         assert r.score == max_score

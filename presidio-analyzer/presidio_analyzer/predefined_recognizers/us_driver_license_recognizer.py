@@ -58,10 +58,14 @@ class UsLicenseRecognizer(PatternRecognizer):
         supported_entity="US_DRIVER_LICENSE",
     ):
         patterns = patterns if patterns else self.PATTERNS
+        title_patterns = [Pattern('Driver License title (strong)',  # language=RegExp
+                                  r'\b(dl|lic(ense)?[\s_-]?(#|num(ber)?)?)\b',
+                                  0.7)]
         context = context if context else self.CONTEXT
         super().__init__(
             supported_entity=supported_entity,
             supported_language=supported_language,
             patterns=patterns,
+            title_patterns=title_patterns,
             context=context,
         )

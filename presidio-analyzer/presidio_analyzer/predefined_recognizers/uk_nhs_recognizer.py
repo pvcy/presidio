@@ -30,9 +30,13 @@ class NhsRecognizer(PatternRecognizer):
             else [("-", ""), (" ", "")]
         context = context if context else self.CONTEXT
         patterns = patterns if patterns else self.PATTERNS
+        title_patterns = [Pattern('NHS title (strong)',  # language=RegExp
+                                  r'\b(nhs[\s_-]?(#|num(ber#))?)\b',
+                                  0.7)]
         super().__init__(
             supported_entity=supported_entity,
             patterns=patterns,
+            title_patterns=title_patterns,
             context=context,
             supported_language=supported_language,
         )
