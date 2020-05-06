@@ -1,7 +1,9 @@
 from abc import abstractmethod
 from dataclasses import dataclass
-from presidio_analyzer import RecognizerResultGroup
-from typing import Mapping
+from presidio_analyzer import RecognizerResultGroup, PresidioLogger
+from typing import Sequence
+
+logger = PresidioLogger("presidio")
 
 @dataclass
 class EntitySource:
@@ -9,14 +11,13 @@ class EntitySource:
     Base class encapsulating behavior of any data source to be analyzed.
     """
     title: str = None
-    text: Mapping[int, str] = None
+    text: Sequence = None
     text_has_context: bool = False
 
     @abstractmethod
     def items(self):
         """
         Iterable of (index, text_value) tuples.
-        TODO Enforce function signature typing
         """
 
     @abstractmethod
@@ -26,6 +27,7 @@ class EntitySource:
         :param results: list of RecognizerResult
         :return list of RecognizerResult
         """
+
     @abstractmethod
     def replace(self, __old, __new):
         """
@@ -35,19 +37,37 @@ class EntitySource:
 class Column(EntitySource):
 
     def __init__(self, series, sample_size=None, **kwargs):
+        if not sample_size:
+            logger.warning(
+                "No sample size given, all rows will be analyzed "
+                f"for Column name={series.name}")
+            col = series
+        else:
+            col = series.sample(sample_size)
+
         super().__init__(
             title=series.name,
-            text=series.sample(sample_size).astype(str),
+            text=col.astype(str),
             **kwargs
         )
         self.sample_size = sample_size
 
     def items(self):
-        return self.text.items
+        return self.text.items()
 
     def postprocess_results(self, results):
-        if len(results) == self.sample_size: # Req every sample to match
-            return RecognizerResultGroup(results) # TODO Or just add col_index?
+        if not results:
+            return
+
+        expected_result_len = self.sample_size or len(self.text)
+        if len(results) == expected_result_len:
+            # TODO More complex rules? Current rule may be too strict for some cases.
+            #   - Most of the sample matches with high confidence
+            #   - Many invalid values, but high-confidence matching title
+            return RecognizerResultGroup(results) # TODO Don't aggregate results?
+        else:
+            logger.debug("Failed to match every sampled row of column, "
+                         "excluding results.")
 
     def replace(self, __old, __new):
         return self.text.replace(__new, __old)

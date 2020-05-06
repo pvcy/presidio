@@ -19,5 +19,9 @@ class UsPassportRecognizer(PatternRecognizer):
 
     def __init__(self):
         patterns = [Pattern('Passport (very weak)', VERY_WEAK_REGEX, 0.05)]
+        title_patterns = [Pattern('Passport title (strong)',
+                                  r'\b(passport(\snum(ber)?|#)?)\b',
+                                  0.7)]
         super().__init__(supported_entity="US_PASSPORT", patterns=patterns,
+                         title_patterns=title_patterns,
                          context=CONTEXT)

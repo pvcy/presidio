@@ -2,6 +2,8 @@ from unittest import TestCase
 
 from presidio_analyzer.predefined_recognizers import UsLicenseRecognizer
 from tests import assert_result_within_score_range
+from pandas import Series
+from presidio_analyzer import Column
 
 us_license_recognizer = UsLicenseRecognizer()
 entities = ["US_DRIVER_LICENSE"]
@@ -46,7 +48,7 @@ class TestUsLicenseRecognizer(TestCase):
     def test_invalid_us_driver_license(self):
         num = 'C12T345672'
         results = us_license_recognizer.analyze('my driver license is ' + num, entities)
-    
+
         assert len(results) == 0
     '''
 
@@ -80,7 +82,7 @@ class TestUsLicenseRecognizer(TestCase):
         num = 'ABCDEFG'
         context = 'my driver license: '
         results = us_license_recognizer.analyze(context + num, entities)
-    
+
         assert len(results) == 1
         assert results[0].text == num
         assert results[0].score > 0.55 and results[0].score < 0.91
@@ -91,3 +93,56 @@ class TestUsLicenseRecognizer(TestCase):
         results = us_license_recognizer.analyze(num, entities)
 
         assert len(results) == 0
+
+
+    # Column tests
+
+    def test_column_valid_us_driver_license_weak_WA_no_title(self):
+        col = Column(Series([
+            'AA1B2**9ABA7',
+            'A*1234AB*CD9'
+        ]))
+        result_group = us_license_recognizer.analyze(col, entities)
+
+        assert len(result_group.recognizer_results) == 2
+        for result in result_group.recognizer_results:
+            assert_result_within_score_range(
+                result, entities[0], 0, 12, 0.3, 0.4)
+
+    def test_column_valid_us_driver_license_very_weak_with_relevant_title(self):
+        col = Column(Series([
+            '12345679012',
+            '67891023467'
+        ], name='license_num'))
+        result_group = us_license_recognizer.analyze(col, entities)
+
+        assert len(result_group.recognizer_results) == 2
+        for result in result_group.recognizer_results:
+            assert_result_within_score_range(
+                result, entities[0], 0, 11, 0.7, 0.75)
+
+    def test_column_valid_us_driver_license_mixed_no_title(self):
+        col = Column(Series([
+            'AA1B2**9ABA7', # weak_WA
+            'H12234567',    # weak alpha
+            '12345679012'   # very weak digits
+        ]))
+        result_group = us_license_recognizer.analyze(col, entities)
+
+        assert len(result_group.recognizer_results) == 3
+        assert_result_within_score_range(
+            result_group.recognizer_results[0], entities[0], 0, 12, 0.3, 0.4)
+        assert_result_within_score_range(
+            result_group.recognizer_results[1], entities[0], 0, 9, 0.29, 0.49)
+        assert_result_within_score_range(
+            result_group.recognizer_results[2], entities[0], 0, 11, 0, 0.02)
+
+    def test_column_mixed_valid_and_invalid_us_driver_license_no_title(self):
+        col = Column(Series([
+            '12345679012',  # very weak
+            '67891023467'   # very weak
+            'C12T345672'    # invalid
+        ]))
+        result_group = us_license_recognizer.analyze(col, entities)
+
+        assert result_group is None

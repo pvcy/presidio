@@ -25,5 +25,10 @@ class UsBankRecognizer(PatternRecognizer):
 
     def __init__(self):
         patterns = [Pattern('Bank Account (weak)', REGEX, 0.05)]
+        title_patterns = [Pattern('Bank account title (strong)', # language=RegExp
+                                  r'\b(bank|check(ing)?|savings|account|acct|debit)(#|num(ber)?)?\b',
+                                  0.7)]
         super().__init__(supported_entity="US_BANK_NUMBER",
-                         patterns=patterns, context=CONTEXT)
+                         patterns=patterns,
+                         title_patterns=title_patterns,
+                         context=CONTEXT)

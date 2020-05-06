@@ -6,7 +6,7 @@ from presidio_analyzer import LocalRecognizer, \
     RecognizerResult, \
     EntityRecognizer, \
     AnalysisExplanation, \
-    Text
+    EntitySource, Text
 
 # Import 're2' regex engine if installed, if not- import 'regex'
 try:
@@ -60,11 +60,8 @@ class PatternRecognizer(LocalRecognizer):
     # pylint: disable=unused-argument
     def analyze(self, entity_source, entities, nlp_artifacts=None):
 
-        # NB Maintain backward compatibility with str input
-        if type(entity_source) is str:
-            entity_source = Text(entity_source, text_has_context=True)
-
-        results = self.__analyze_patterns(entity_source, self.patterns)
+        results = self.__analyze_patterns(
+            self.__standardize_source(entity_source), self.patterns)
 
         if results:
             if entity_source.text_has_context and self.context:
@@ -76,9 +73,24 @@ class PatternRecognizer(LocalRecognizer):
             if entity_source.title and self.title_patterns:
             # Refine results scores using source title and title patterns
                 results = self.__enhance_using_patterns(
-                    entity_source.title, results, self.title_patterns)
+                    self.__standardize_source(entity_source.title),
+                    results, self.title_patterns)
 
         return entity_source.postprocess_results(results)
+
+    @staticmethod
+    def __standardize_source(source):
+        """
+        Upgrade strings to Text (maintaining backward compatibility,
+        passthrough other EntitySources, fail unsupported source types.
+        """
+        if issubclass(type(source), EntitySource):
+            return source
+        elif type(source) is str:
+            return Text(source)
+        else:
+            raise ValueError(f"Unsupported type ({type(source)}) used"
+                             "as input to PatternRecognizer analyzer.")
 
     @staticmethod
     def __black_list_to_regex(black_list):
@@ -222,3 +234,4 @@ class PatternRecognizer(LocalRecognizer):
 
             return results # No results are returned if nothing matches
             # TODO Demote result scores on no match instead of remove?
+            # TODO Decouple Column-specific behavior (removing/demoting score) from this function.

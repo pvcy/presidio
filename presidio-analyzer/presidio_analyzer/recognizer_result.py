@@ -80,7 +80,7 @@ class RecognizerResultGroup(RecognizerResult):
 
     def __init__(self, recognizer_results):
         self.recognizer_results = recognizer_results
-        best_scoring = max(lambda r: r.score, recognizer_results)
+        best_scoring = max(recognizer_results, key=lambda r: r.score)
         super().__init__(**best_scoring.__dict__)
 
     def to_json(self):

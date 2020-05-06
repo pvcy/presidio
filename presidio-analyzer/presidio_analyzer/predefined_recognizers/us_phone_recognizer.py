@@ -26,7 +26,7 @@ class UsPhoneRecognizer(PatternRecognizer):
     WEAK_REGEX_SCORE = 0.05
 
     STRONG_REGEX = \
-        r'(\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|d{3}[-\.\s]\d{3}[-\.\s]\\d{4})'
+        r'(\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|d{3}[-\.\s]\d{3}[-\.\s]\\d{4})' #Fixme: is \\d a typo?
     MEDIUM_REGEX = r'\b(\d{3}[-\.\s]\d{3}[-\.\s]??\d{4})\b'
     WEAK_REGEX = r'(\b\d{10}\b)'
 
@@ -40,5 +40,10 @@ class UsPhoneRecognizer(PatternRecognizer):
                     Pattern('Phone (weak)',
                             UsPhoneRecognizer.WEAK_REGEX,
                             UsPhoneRecognizer.WEAK_REGEX_SCORE)]
+        title_patterns = [Pattern('Phone title (strong)',
+                          r'^(phone([\s_-]?num(ber)?)?)$',
+                          UsPhoneRecognizer.STRONG_REGEX_SCORE)]
         super().__init__(supported_entity="PHONE_NUMBER",
-                         patterns=patterns, context=CONTEXT)
+                         patterns=patterns,
+                         title_patterns=title_patterns,
+                         context=CONTEXT)

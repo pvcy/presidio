@@ -38,5 +38,7 @@ class UsSsnRecognizer(PatternRecognizer):
         patterns = [Pattern('SSN (very weak)', VERY_WEAK_REGEX, 0.05),
                     Pattern('SSN (weak)', WEAK_REGEX, 0.3),
                     Pattern('SSN (medium)', MEDIUM_REGEX, 0.5)]
+        title_patterns = [Pattern('SSN Title (strong)', r'^(SSN)$', 0.7),
+                          Pattern('SSN Title (medium)', r'^(social)$', 0.5)]
         super().__init__(supported_entity="US_SSN", patterns=patterns,
-                         context=CONTEXT)
+                         context=CONTEXT, title_patterns=title_patterns)

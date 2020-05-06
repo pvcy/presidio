@@ -125,6 +125,7 @@ class AnalyzerEngine(analyze_pb2_grpc.AnalyzeServiceServicer):
     @staticmethod
     def __remove_duplicates(results):
         """
+        TODO More robust support for comparing grouped results (with/without indicies).
         Removes each result which has a span contained in a
         result's span with a higher score
         :param results: List[RecognizerResult]
