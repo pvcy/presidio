@@ -8,7 +8,7 @@ CONTEXT = [
     "card",
     "visa",
     "mastercard",
-    "cc ",
+    "cc",
     # "american express" #Task #603: Support keyphrases
     "amex",
     "discover",
@@ -26,7 +26,11 @@ class CreditCardRecognizer(PatternRecognizer):
 
     def __init__(self):
         patterns = [Pattern('All Credit Cards (weak)', REGEX, 0.3)]
+        title_patterns = [Pattern('Credit Card Title (strong)',
+                                  fr'\b({("|".join(CONTEXT + ["american[ _-]express"]))})[\s_-]?(#|num(ber)?)?\b',
+                                  0.7)]
         super().__init__(supported_entity="CREDIT_CARD", patterns=patterns,
+                         title_patterns=title_patterns,
                          context=CONTEXT)
 
     def validate_result(self, pattern_text):

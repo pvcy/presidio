@@ -4,7 +4,7 @@ from unittest import TestCase
 import pytest
 
 from presidio_analyzer import AnalyzerEngine, PatternRecognizer, Pattern, \
-    RecognizerResult, RecognizerRegistry, AnalysisExplanation
+    RecognizerResult, RecognizerRegistry, AnalysisExplanation, RecognizerResultGroup
 from presidio_analyzer import PresidioLogger
 from presidio_analyzer.protobuf_models.analyze_pb2 import AnalyzeRequest, \
     RecognizersAllRequest
@@ -517,8 +517,8 @@ class TestAnalyzerEngine(TestCase):
         response = analyze_engine.GetAllRecognizers(request, None)
         # there are 15 predefined recognizers and one custom
         assert len(response) == 16
-        rocket_recognizer = [recognizer for recognizer in response if recognizer.name == "Rocket recognizer" 
-            and recognizer.entities == ["ROCKET"] 
+        rocket_recognizer = [recognizer for recognizer in response if recognizer.name == "Rocket recognizer"
+            and recognizer.entities == ["ROCKET"]
             and recognizer.language == "en"]
         assert len(rocket_recognizer) == 1
 
@@ -529,7 +529,7 @@ class TestAnalyzerEngine(TestCase):
                                                patterns=[pattern])
 
         recognizers_store_api_mock = RecognizerStoreApiMock()
-        
+
         analyze_engine = AnalyzerEngine(registry=
             MockRecognizerRegistry(
                 recognizers_store_api_mock),
@@ -562,3 +562,29 @@ class TestAnalyzerEngine(TestCase):
         response = analyze_engine.GetAllRecognizers(request, None)
         # there is only 1 mocked russian recognizer
         assert len(response) == 1
+
+
+    # Column tests
+
+    def test_column_remove_duplicates(self):
+        # test same result with different score will return only the highest
+        args_default = dict(start=0, end=5, entity_type="x",
+                         analysis_explanation=AnalysisExplanation(
+                             recognizer='test',
+                             original_score=0,
+                             pattern_name='test',
+                             pattern='test',
+                             validation_result=None))
+        result_set_lower = []
+        result_set_higher = []
+        for i in range(2):
+            result_set_lower.append(
+                RecognizerResult(**{**args_default, 'score': 0.1, 'index': i}))
+            result_set_higher.append(
+                RecognizerResult(**{**args_default, 'score': 0.5, 'index': i}))
+
+        arr = [RecognizerResultGroup(result_set_lower),
+               RecognizerResultGroup(result_set_higher)]
+        results = AnalyzerEngine._AnalyzerEngine__remove_duplicates(arr)
+        assert len(results) == 1
+        assert results[0].score == 0.5

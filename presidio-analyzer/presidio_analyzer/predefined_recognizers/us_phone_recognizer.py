@@ -40,8 +40,8 @@ class UsPhoneRecognizer(PatternRecognizer):
                     Pattern('Phone (weak)',
                             UsPhoneRecognizer.WEAK_REGEX,
                             UsPhoneRecognizer.WEAK_REGEX_SCORE)]
-        title_patterns = [Pattern('Phone title (strong)',
-                          r'^(phone([\s_-]?num(ber)?)?)$',
+        title_patterns = [Pattern('Phone title (strong)',   # language=RegExp
+                          r'^(phone[\s_-]?(#|num(ber)?)?)$',
                           UsPhoneRecognizer.STRONG_REGEX_SCORE)]
         super().__init__(supported_entity="PHONE_NUMBER",
                          patterns=patterns,

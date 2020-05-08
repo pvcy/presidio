@@ -60,8 +60,8 @@ class PatternRecognizer(LocalRecognizer):
     # pylint: disable=unused-argument
     def analyze(self, entity_source, entities, nlp_artifacts=None):
 
-        results = self.__analyze_patterns(
-            self.__standardize_source(entity_source), self.patterns)
+        entity_source = self.__standardize_source(entity_source)
+        results = self.__analyze_patterns(entity_source, self.patterns, self.validate_result)
 
         if results:
             if entity_source.text_has_context and self.context:
@@ -130,15 +130,19 @@ class PatternRecognizer(LocalRecognizer):
                                           validation_result=validation_result)
         return explanation
 
-    def __analyze_patterns(self, entity_source: Mapping[int, str], patterns):
+    def __analyze_patterns(self, entity_source: Mapping[int, str], patterns, validator=None):
         """
         Evaluates all patterns in the provided text, including words in
          the provided blacklist
 
-        :param entity_source: text to analyze
+        :param entity_source: EntitySource to analyze
+        :param patterns: Patterns to match against source
+        :param validator: Function to validate match
         :return: A list of RecognizerResult
 
-        TODO: Should text list handling move up to AnalyzerEngine?
+        TODO:
+            Should text list handling move up to AnalyzerEngine?
+            Is there a more OOP way to reuse this logic across contexts?
         """
         results = []
         for i, t in entity_source.items():
@@ -164,7 +168,7 @@ class PatternRecognizer(LocalRecognizer):
 
                     score = pattern.score
 
-                    validation_result = self.validate_result(current_match)
+                    validation_result = validator(current_match) if validator else None
                     description = PatternRecognizer.build_regex_explanation(
                         self.name,
                         pattern.name,
@@ -178,7 +182,7 @@ class PatternRecognizer(LocalRecognizer):
                         end,
                         score,
                         analysis_explanation=description,
-                        index=0
+                        index=i
                     )
 
                     if validation_result is not None:

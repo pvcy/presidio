@@ -86,8 +86,6 @@ class RecognizerResultGroup(RecognizerResult):
     def to_json(self):
         return str({ 'recognizer_results' : [str(r) for r in self.recognizer_results]})
 
-    def intersects(self, other):
-        return False
+    # TODO def intersects(self, other):
 
-    def contained_in(self, other):
-        return False
+    # TODO def contained_in(self, other):

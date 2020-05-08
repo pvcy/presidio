@@ -15,7 +15,11 @@ class CryptoRecognizer(PatternRecognizer):
 
     def __init__(self):
         patterns = [Pattern('Crypto (Medium)', REGEX, 0.5)]
+        title_patterns = [Pattern('Crypto Title (Strong)',  # language=RegExp
+                                  r'\b(wallet|btc|bitcoin|crypto)\b',
+                                  0.7)]
         super().__init__(supported_entity="CRYPTO", patterns=patterns,
+                         title_patterns=title_patterns,
                          context=CONTEXT)
 
     def validate_result(self, pattern_text):

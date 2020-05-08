@@ -3,6 +3,8 @@ from unittest import TestCase
 from tests import assert_result
 from presidio_analyzer.predefined_recognizers import DomainRecognizer
 from presidio_analyzer.entity_recognizer import EntityRecognizer
+from pandas import Series
+from presidio_analyzer import Column
 
 domain_recognizer = DomainRecognizer()
 entities = ["DOMAIN_NAME"]
@@ -40,3 +42,41 @@ class TestDomainRecognizer(TestCase):
         assert len(results) == 2
         assert_result(results[0], entities[0], 12, 25, EntityRecognizer.MAX_SCORE)
         assert_result(results[1], entities[0], 26, 38, EntityRecognizer.MAX_SCORE)
+
+    # Column tests
+
+    def test_column_valid_domain_no_title(self):
+        col = Column(Series([
+            'microsoft.com',
+            'google.co.il'
+        ]))
+        result_group = domain_recognizer.analyze(col, entities)
+
+        assert len(result_group.recognizer_results) == 2
+        assert_result(result_group.recognizer_results[0],
+                      entities[0], 0, 13, EntityRecognizer.MAX_SCORE)
+        assert_result(result_group.recognizer_results[1],
+                      entities[0], 0, 12, EntityRecognizer.MAX_SCORE)
+
+    def test_column_valid_domain_with_title(self):
+        col = Column(Series([
+            'microsoft.com',
+            'google.co.il'
+        ], name='domain'))
+        result_group = domain_recognizer.analyze(col, entities)
+
+        assert len(result_group.recognizer_results) == 2
+        assert_result(result_group.recognizer_results[0],
+                      entities[0], 0, 13, EntityRecognizer.MAX_SCORE)
+        assert_result(result_group.recognizer_results[1],
+                      entities[0], 0, 12, EntityRecognizer.MAX_SCORE)
+
+    def test_column_mixed_valid_and_invalid_domain_no_title(self):
+        col = Column(Series([
+            'microsoft.com',
+            'google.co.il',
+            'microsoft.'
+        ]))
+        result_group = domain_recognizer.analyze(col, entities)
+
+        assert result_group is None

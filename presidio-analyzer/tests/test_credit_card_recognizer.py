@@ -5,7 +5,8 @@ from unittest import TestCase
 from tests import assert_result
 from presidio_analyzer.predefined_recognizers import CreditCardRecognizer
 from presidio_analyzer.entity_recognizer import EntityRecognizer
-
+from pandas import Series
+from presidio_analyzer import Column
 
 entities = ["CREDIT_CARD"]
 credit_card_recognizer = CreditCardRecognizer()
@@ -148,3 +149,70 @@ class TestCreditCardRecognizer(TestCase):
         results = credit_card_recognizer.analyze('my credit card number is ' + number, entities)
 
         assert not results
+
+
+    # Column tests
+
+    def test_column_valid_credit_cards_no_title(self):
+        col = Column(Series([
+            '4012888888881881',     # Visa
+            '4012-8888-8888-1881',  # Visa
+            '4012 8888 8888 1881',  # Visa
+            '122000000000003',      # Airplus
+            '371449635398431',      # Amex
+            '6011000400000000',     # Discover
+            '5555555555554444',     # Cartebleue
+            '5019717010103742',     # Dankort
+            '30569309025904',       # Diner's
+            '3528000700000000',     # JCB
+            '6759649826438453',     # Maestro
+            '5555555555554444'      # Mastercard
+        ]))
+
+        result_group = credit_card_recognizer.analyze(col, entities)
+
+        assert len(result_group.recognizer_results) == 12
+        for result in result_group.recognizer_results:
+            assert result.score == EntityRecognizer.MAX_SCORE
+
+    def test_column_valid_credit_cards_with_relevant_title(self):
+        col = Column(Series([
+            '4012888888881881',     # Visa
+            '4012-8888-8888-1881',  # Visa
+            '4012 8888 8888 1881',  # Visa
+            '122000000000003',      # Airplus
+            '371449635398431',      # Amex
+            '6011000400000000',     # Discover
+            '5555555555554444',     # Cartebleue
+            '5019717010103742',     # Dankort
+            '30569309025904',       # Diner's
+            '3528000700000000',     # JCB
+            '6759649826438453',     # Maestro
+            '5555555555554444'      # Mastercard
+        ], name='cc#'))
+
+        result_group = credit_card_recognizer.analyze(col, entities)
+
+        assert len(result_group.recognizer_results) == 12
+        for result in result_group.recognizer_results:
+            assert result.score == EntityRecognizer.MAX_SCORE
+
+    def test_column_mixed_valid_and_invalid_credit_cards_no_title(self):
+        col = Column(Series([
+            '4012888888881881',     # Visa
+            '4012-8888-8888-1881',  # Visa
+            '4012 8888 8888 1881',  # Visa
+            '122000000000003',      # Airplus
+            '371449635398431',      # Amex
+            '6011000400000000',     # Discover
+            '5555555555554444',     # Cartebleue
+            '5019717010103742',     # Dankort
+            '30569309025904',       # Diner's
+            '3528000700000000',     # JCB
+            '6759649826438453',     # Maestro
+            '5555555555554444'      # Mastercard
+            '4012-8888-8888-1882'   # invalid
+        ]))
+
+        result_group = credit_card_recognizer.analyze(col, entities)
+        assert result_group is None

@@ -16,5 +16,9 @@ class IpRecognizer(PatternRecognizer):
     def __init__(self):
         patterns = [Pattern('IPv4', IP_V4_REGEX, 0.6),
                     Pattern('IPv6', IP_V6_REGEX, 0.6)]
+        title_patterns = [Pattern('Any IP Address title (strong)', # language=RegExp
+                                  r'\b(ipv?[46]?)\b',
+                                  0.7)]
         super().__init__(supported_entity="IP_ADDRESS", patterns=patterns,
+                         title_patterns=title_patterns,
                          context=IP_CONTEXT)

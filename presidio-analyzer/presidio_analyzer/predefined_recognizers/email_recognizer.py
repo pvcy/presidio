@@ -14,8 +14,13 @@ class EmailRecognizer(PatternRecognizer):
 
     def __init__(self):
         patterns = [Pattern('Email (Medium)', REGEX, 0.5)]
+        title_patterns = [Pattern('Email title (strong)',   # language=RegExp
+                                  r'\b(e[\-_]?mail[\s_-]?(addr(ess)?)?)\b',
+                                  0.7)]
         super().__init__(supported_entity="EMAIL_ADDRESS",
-                         patterns=patterns, context=CONTEXT)
+                         patterns=patterns,
+                         title_patterns=title_patterns,
+                         context=CONTEXT)
 
     def validate_result(self, pattern_text):
         result = tldextract.extract(pattern_text)

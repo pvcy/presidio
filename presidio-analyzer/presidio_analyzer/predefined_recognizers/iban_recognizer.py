@@ -29,8 +29,12 @@ class IbanRecognizer(PatternRecognizer):
         patterns = [Pattern('IBAN Generic',
                             IBAN_GENERIC_REGEX,
                             IBAN_GENERIC_SCORE)]
+        title_patterns = [Pattern('IBAN Generic Title (strong)', # language=RegExp
+                                  r'\b(iban|bank|transaction)[\s_-]?()\b',
+                                  0.7)]
         super().__init__(supported_entity="IBAN_CODE",
                          patterns=patterns,
+                         title_patterns=title_patterns,
                          context=CONTEXT)
 
     def validate_result(self, pattern_text):

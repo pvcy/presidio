@@ -59,8 +59,8 @@ class Column(EntitySource):
         if not results:
             return
 
-        expected_result_len = self.sample_size or len(self.text)
-        if len(results) == expected_result_len:
+        expected_col_matches = self.sample_size or len(self.text)
+        if expected_col_matches == len(set(r.index for r in results)): # Count unique col indicies
             # TODO More complex rules? Current rule may be too strict for some cases.
             #   - Most of the sample matches with high confidence
             #   - Many invalid values, but high-confidence matching title

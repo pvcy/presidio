@@ -35,7 +35,7 @@ class UsLicenseRecognizer(PatternRecognizer):
                     Pattern('Driver License - Digits (very weak)',
                             DIGITS_REGEX, 0.01)]
         title_patterns = [Pattern('Driver License title (strong)', # language=RegExp
-                                  r'\b(lic(ense)?[\s_-]?(#|num(ber)?)?)\b',
+                                  r'\b(dl|lic(ense)?[\s_-]?(#|num(ber)?)?)\b',
                                   0.7)]
         super().__init__(supported_entity="US_DRIVER_LICENSE",
                          patterns=patterns,
