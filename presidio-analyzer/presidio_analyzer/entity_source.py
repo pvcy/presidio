@@ -2,6 +2,7 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from presidio_analyzer import RecognizerResultGroup, PresidioLogger
 from typing import Sequence
+import re
 
 logger = PresidioLogger("presidio")
 
@@ -46,11 +47,23 @@ class Column(EntitySource):
             col = series.sample(sample_size)
 
         super().__init__(
-            title=series.name,
+            title=self.__normalize_title(series.name),
             text=col.astype(str),
             **kwargs
         )
         self.sample_size = sample_size
+
+    @staticmethod
+    def __normalize_title(title_text):
+        """
+        Convert camelCase and PascalCase titles into space-delimited tokens,
+        and normalize common delimeters into spaces.
+        """
+        if title_text is None:
+            return None
+
+        split_regex = r'(\b[a-zA-Z0-9][a-z0-9]+)([A-Z0-9][a-z0-9]+)|[\b_-]'
+        return ' '.join([r for r in re.split(split_regex, title_text) if r])
 
     def items(self):
         return self.text.items()

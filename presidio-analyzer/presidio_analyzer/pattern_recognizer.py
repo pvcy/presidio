@@ -151,7 +151,7 @@ class PatternRecognizer(LocalRecognizer):
                 matches = re.finditer(
                     pattern.regex,
                     t,
-                    flags=re.IGNORECASE | re.DOTALL | re.MULTILINE)
+                    flags=re.IGNORECASE | re.DOTALL | re.MULTILINE | re.VERBOSE)
                 match_time = datetime.datetime.now() - match_start_time
                 self.logger.debug('--- match_time[%s]: %s.%s seconds',
                                   pattern.name,
