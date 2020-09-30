@@ -44,7 +44,10 @@ class Column(EntitySource):
                 f"for Column name={series.name}")
             col = series
         else:
-            col = series.sample(sample_size)
+            if sample_size <= len(series):
+                col = series.sample(sample_size)
+            else:
+                col = series
 
         super().__init__(
             title=self.__normalize_title(series.name),
@@ -59,8 +62,8 @@ class Column(EntitySource):
         Convert camelCase and PascalCase titles into space-delimited tokens,
         and normalize common delimeters into spaces.
         """
-        if title_text is None:
-            return None
+        if title_text is None or not(isinstance(title_text, str)):
+            return title_text
 
         split_regex = r'(\b[a-zA-Z0-9][a-z0-9]+)([A-Z0-9][a-z0-9]+)|[\b_-]'
         return ' '.join([r for r in re.split(split_regex, title_text) if r])
@@ -72,12 +75,17 @@ class Column(EntitySource):
         if not results:
             return
 
-        expected_col_matches = self.sample_size or len(self.text)
+        # Handle title-only match
+        if len(results) == 1 and getattr(results[0], 'source', None) == 'entity_title':
+            return results
+
+        # Handle column match, requires a match for every row.
+        # TODO More complex rules? Current rule may be too strict for some cases.
+        #   - Most of the sample matches with high confidence
+        #   - Many invalid values, but high-confidence matching title
+        expected_col_matches = len(self.text)
         if expected_col_matches == len(set(r.index for r in results)): # Count unique col indicies
-            # TODO More complex rules? Current rule may be too strict for some cases.
-            #   - Most of the sample matches with high confidence
-            #   - Many invalid values, but high-confidence matching title
-            return RecognizerResultGroup(results) # TODO Don't aggregate results?
+            return [RecognizerResultGroup(results)] # TODO Don't aggregate results?
         else:
             logger.debug("Failed to match every sampled row of column, "
                          "excluding results.")

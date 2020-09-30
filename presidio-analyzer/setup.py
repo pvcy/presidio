@@ -25,10 +25,10 @@ setuptools.setup(
     trusted_host=['pypi.org'],
     tests_require=['pytest', 'flake8==3.7.9', 'pylint==2.3.1'],
     install_requires=[
-        'cython==0.29.10',
+        'cython==0.29.14',
         'spacy==2.2.3',
-        'regex==2019.6.8',
-        'grpcio==1.21.1',
+        'regex==2019.12.17',
+        'grpcio==1.26.0',
         'protobuf==3.8.0',
         'tldextract==2.2.1',
         'knack==0.6.2'],

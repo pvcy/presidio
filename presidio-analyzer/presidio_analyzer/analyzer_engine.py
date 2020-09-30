@@ -191,12 +191,12 @@ class AnalyzerEngine(analyze_pb2_grpc.AnalyzeServiceServicer):
             language = self.default_language
         return language
 
-    def analyze(self, text, language, all_fields, entities=None, correlation_id=None,
+    def analyze(self, entity_source, language, all_fields, entities=None, correlation_id=None,
                 score_threshold=None, trace=False):
         """
         analyzes the requested text, searching for the given entities
          in the given language
-        :param text: the text to analyze
+        :param entity_source: string or EntitySource subclass
         :param entities: the text to search
         :param language: the language of the text
         :param all_fields: a Flag to return all fields
@@ -230,7 +230,8 @@ class AnalyzerEngine(analyze_pb2_grpc.AnalyzeServiceServicer):
         # run the nlp pipeline over the given text, store the results in
         # a NlpArtifacts instance
         if self.nlp_engine:
-            nlp_artifacts = self.nlp_engine.process_text(text, language)
+            # TODO Handle non-string sources
+            nlp_artifacts = self.nlp_engine.process_text(entity_source, language)
         else:
             nlp_artifacts = None
 
@@ -246,7 +247,7 @@ class AnalyzerEngine(analyze_pb2_grpc.AnalyzeServiceServicer):
                 recognizer.is_loaded = True
 
             # analyze using the current recognizer and append the results
-            current_results = recognizer.analyze(text=text,
+            current_results = recognizer.analyze(entity_source,
                                                  entities=entities,
                                                  nlp_artifacts=nlp_artifacts)
             if current_results:

@@ -32,7 +32,7 @@ class PatternRecognizer(LocalRecognizer):
             raise ValueError(
                 "Pattern recognizer should be initialized with entity")
 
-        if not patterns and not black_list:
+        if not patterns and not black_list and not title_patterns:
             raise ValueError(
                 "Pattern recognizer should be initialized with patterns"
                 " or with black list")
@@ -77,13 +77,13 @@ class PatternRecognizer(LocalRecognizer):
                 else:
                     results.extend(pattern_result)
 
-                if entity_source.title and self.title_patterns:
-                    # Refine results scores using source title and title patterns
-                    results = self.__enhance_using_patterns(
-                        Text(text=entity_source.title, text_has_context=False),
-                        results, self.title_patterns,
-                        flags=re.IGNORECASE | re.DOTALL | re.MULTILINE
-                    )
+        if entity_source.title and self.title_patterns:
+            title_results = self.__analyze_patterns(
+                Text(text=entity_source.title, text_has_context=False),
+                self.title_patterns,
+                flags=re.IGNORECASE | re.DOTALL | re.MULTILINE
+            )
+            results = self.enhance_using_title(entity_source.title, results, title_results)
 
         return entity_source.postprocess_results(results)
 
@@ -152,7 +152,7 @@ class PatternRecognizer(LocalRecognizer):
                                           validation_result=validation_result)
         return explanation
 
-    def __analyze_patterns(self, entity_source: Mapping[int, str], patterns,
+    def __analyze_patterns(self, entity_source, patterns,
                            validator=None, invalidator=None, flags=None):
         """
         Evaluates all patterns in the provided text, including words in
@@ -160,7 +160,7 @@ class PatternRecognizer(LocalRecognizer):
 
         :param entity_source: text to analyze
         :param flags: regex flags
-        :param entity_source: EntitySource to analyze
+        :param entity_source: E ntitySource to analyze
         :param patterns: Patterns to match against source
         :param validator: Function for validating match
         :param invalidator: Function for invalidating match
@@ -246,27 +246,3 @@ class PatternRecognizer(LocalRecognizer):
             entity_recognizer_dict['patterns'] = patterns_list
 
         return cls(**entity_recognizer_dict)
-
-    def __enhance_using_patterns(self, source_text, results, patterns, flags=None):
-        """
-         TODO More accurate name than "enhance" => enrich/improve/refine
-        """
-        if not source_text or not patterns:
-            # Nothing to match or nothing to match with => passthrough
-            return results
-
-        enhancement_results = self.__analyze_patterns(source_text, patterns, flags=flags)
-        if enhancement_results and source_text:
-            best_match = max(enhancement_results, key=lambda r: r.score)
-            best_score = best_match.score
-            for result in results:
-                result.score = min(
-                    result.score + best_score,
-                    EntityRecognizer.MAX_SCORE
-                )
-                result.analysis_explanation.set_supportive_context_word(source_text) # NB Leaky abstraction
-                result.analysis_explanation.set_improved_score(result.score)
-
-            return results # No results are returned if nothing matches
-            # TODO Demote result scores on no match instead of remove?
-            # TODO Decouple Column-specific behavior (removing/demoting score) from this function.
