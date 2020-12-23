@@ -79,13 +79,11 @@ class Column(EntitySource):
         if len(results) == 1 and getattr(results[0], 'source', None) == 'entity_title':
             return results
 
-        # Handle column match, requires a match for every row.
-        # TODO More complex rules? Current rule may be too strict for some cases.
-        #   - Most of the sample matches with high confidence
-        #   - Many invalid values, but high-confidence matching title
+        # Handle column match, requires a valid match for every row.
         expected_col_matches = len(self.text)
-        if expected_col_matches == len(set(r.index for r in results)): # Count unique col indicies
-            return [RecognizerResultGroup(results)] # TODO Don't aggregate results?
+        valid_matches = [r.index for r in results]
+        if expected_col_matches == len(set(valid_matches)): # Count unique col indicies
+            return [RecognizerResultGroup(results)]
         else:
             logger.debug("Failed to match every sampled row of column, "
                          "excluding results.")
