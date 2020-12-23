@@ -64,8 +64,9 @@ class PatternRecognizer(LocalRecognizer):
 
         if self.patterns:
             pattern_result = self.__analyze_patterns(
-                entity_source, self.patterns, self.validate_result, self.invalidate_result)
-
+                entity_source, self.patterns, self.validate_result,
+                self.invalidate_result, flags=regex_flags
+            )
             if pattern_result:
                 if entity_source.text_has_context and self.context:
                     # try to improve the results score using the surrounding
@@ -175,10 +176,11 @@ class PatternRecognizer(LocalRecognizer):
         for i, t in entity_source.items():
             for pattern in patterns:
                 match_start_time = datetime.datetime.now()
+                pattern_flags = pattern.flags or flags
                 matches = re.finditer(
                     pattern.regex,
                     t,
-                    flags=flags)
+                    flags=pattern_flags)
                 match_time = datetime.datetime.now() - match_start_time
                 self.logger.debug('--- match_time[%s]: %s.%s seconds',
                                   pattern.name,

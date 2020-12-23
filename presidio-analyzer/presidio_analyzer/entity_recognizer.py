@@ -97,10 +97,10 @@ class EntityRecognizer:
     def enhance_using_title(self, title, raw_results, title_results):
         """
         Select best score from matching title results and add to result scores.
-        Return nothing (invalidate results) if there are no title results.
         """
+        results = copy.deepcopy(raw_results)
+        
         if title_results:
-            results = copy.deepcopy(raw_results)
             best_match = max(title_results, key=lambda r: r.score)
             best_score = best_match.score
             for result in results:
@@ -112,7 +112,8 @@ class EntityRecognizer:
                     best_match.analysis_explanation.pattern_name # NB Breadcrumb for recognizer impl
                 result.analysis_explanation.set_supportive_context_word(title)
                 result.analysis_explanation.set_improved_score(result.score)
-            return results
+
+        return results
 
     def enhance_using_context(self, entity_source, raw_results,
                               nlp_artifacts, recognizer_context_words):
