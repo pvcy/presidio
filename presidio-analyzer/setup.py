@@ -28,7 +28,7 @@ setuptools.setup(
         'cython==0.29.26',
         'spacy==2.3.7',
         'regex==2019.12.17',
-        'grpcio==1.38.1',
+        'grpcio==1.43.0',
         'protobuf==3.19.1',
         'tldextract==2.2.1',
         'knack==0.6.2'],
