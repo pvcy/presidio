@@ -78,13 +78,14 @@ class PatternRecognizer(LocalRecognizer):
                 else:
                     results.extend(pattern_result)
 
-        if entity_source.title and self.title_patterns:
-            title_results = self.__analyze_patterns(
-                Text(text=entity_source.title, text_has_context=False),
-                self.title_patterns,
-                flags=re.IGNORECASE | re.DOTALL | re.MULTILINE
-            )
-            results = self.enhance_using_title(entity_source.title, results, title_results)
+        if entity_source.titles and self.title_patterns:
+            title_results = [
+                self.__analyze_patterns(
+                    Text(text=title, text_has_context=False),
+                    self.title_patterns,
+                    flags=re.IGNORECASE | re.DOTALL | re.MULTILINE
+                ) for title in entity_source.titles] # List of lists of results
+            results = self.enhance_using_title(entity_source.titles, results, title_results)
 
         return entity_source.postprocess_results(results)
 
