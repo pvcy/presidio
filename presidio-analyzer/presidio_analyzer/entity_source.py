@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from dataclasses import dataclass
 from presidio_analyzer import RecognizerResultGroup, PresidioLogger
-from typing import Sequence
+from typing import Sequence, Optional
 import re
 
 logger = PresidioLogger("presidio")
@@ -11,7 +11,7 @@ class EntitySource:
     """
     Base class encapsulating behavior of any data source to be analyzed.
     """
-    title: str = None
+    titles: Optional[list] = None
     text: Sequence = None
     text_has_context: bool = True
 
@@ -49,41 +49,61 @@ class Column(EntitySource):
             else:
                 col = series
 
+        # Process original and tokenized titles
+        titles = (
+            [series.name, self._tokenize_title(series.name)]
+            if isinstance(series.name, str)
+            else None
+        )
         super().__init__(
-            title=self.__normalize_title(series.name),
+            titles=titles,
             text=col.astype(str),
             **kwargs
         )
         self.sample_size = sample_size
 
     @staticmethod
-    def __normalize_title(title_text):
+    def _tokenize_title(title_text):
         """
-        Convert camelCase and PascalCase titles into space-delimited tokens,
-        and normalize common delimeters into spaces.
+        Preprocessing step to effectively provode limited substring matching for
+        recognizers. Converts camelCase, PascalCase titles into space-delimited
+        tokens and normalizes common sparators into spaces.
         """
         if title_text is None or not(isinstance(title_text, str)):
             return title_text
 
-        split_regex = r'(\b[a-zA-Z0-9][a-z0-9]+)([A-Z0-9][a-z0-9]+)|[\b_-]'
-        return ' '.join([r for r in re.split(split_regex, title_text) if r])
+        split_regex = r"""
+        (?<=[a-zA-Z])\B(?=[0-9])    # Split trailing numbers
+        | (?<=[0-9])\B(?=[a-zA-Z])  # Split leading numbers
+        | (?<=[a-z])\B(?=[A-Z])     # Split on lower to upper case change
+        | (?<=[A-Z]{2})\B(?=[a-z])  # Split on 2+ upper to lower case change
+        | [_-]                      # Convert other separators to space
+        """
+
+        return ' '.join([
+            r for r in re.split(split_regex, title_text, flags=re.VERBOSE)
+            if r])
 
     def items(self):
         return self.text.items()
 
     def postprocess_results(self, results):
+        """
+        Validate that there is a match for every row, or that the match occurred
+        in the title (and no rows matches)
+        """
         if not results:
             return
 
-        # Handle title-only match
-        if len(results) == 1 and getattr(results[0], 'source', None) == 'entity_title':
+        # Special case: title-only matches
+        if all(getattr(r, 'source', None) == 'entity_title' for r in results):
             return results
 
         # Handle column match, requires a valid match for every row.
         expected_col_matches = len(self.text)
         valid_matches = [r.index for r in results]
         if expected_col_matches == len(set(valid_matches)): # Count unique col indicies
-            return [RecognizerResultGroup(results)]
+            return RecognizerResultGroup(results)
         else:
             logger.debug("Failed to match every sampled row of column, "
                          "excluding results.")

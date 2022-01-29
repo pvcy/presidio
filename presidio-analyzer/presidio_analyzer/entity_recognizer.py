@@ -94,14 +94,38 @@ class EntityRecognizer:
     def from_dict(cls, entity_recognizer_dict):
         return cls(**entity_recognizer_dict)
 
-    def enhance_using_title(self, title, raw_results, title_results):
+
+    def promote_title_results(self, title_results):
+        """
+        Title results are a list of lists to preserve 1-to-many mapping from
+        each source title. Flatten title results and set source to indicate
+        these results originated with a title.
+
+        TODO Handle automatically via specialized title-only class (rather than
+          require subclasses to override enhance_using_title() and passthrough)
+        """
+        results = [result for results in title_results for result in results]
+        for r in results: r.source = 'entity_title'
+        return results
+
+
+    def enhance_using_title(self, titles, raw_results, title_results):
         """
         Select best score from matching title results and add to result scores.
+
+        :param titles: list of titles
+        :param title_results: list of list of title results (corresponding to list of titles)
+        :param raw_results: result scores to be enhanced
         """
         results = copy.deepcopy(raw_results)
-        
-        if title_results:
-            best_match = max(title_results, key=lambda r: r.score)
+
+        if any(title_results):
+            results_with_title = [
+                (result, title)
+                for results, title in zip(title_results, titles)
+                for result in results
+            ]
+            best_match, title = max(results_with_title, key=lambda rt: rt[0].score)
             best_score = best_match.score
             for result in results:
                 result.score = min(
