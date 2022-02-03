@@ -21,6 +21,8 @@ from presidio_analyzer.predefined_recognizers import (
     SpacyRecognizer,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class RecognizerRegistry:
     """
@@ -113,7 +115,7 @@ class RecognizerRegistry:
             all_possible_recognizers = self.recognizers.copy()
             custom_recognizers = self.get_custom_recognizers()
             all_possible_recognizers.extend(custom_recognizers)
-            logging.info("Found %d (total) custom recognizers", len(custom_recognizers))
+            logger.debug("Found %d (total) custom recognizers", len(custom_recognizers))
         else:
             all_possible_recognizers = self.recognizers
 
@@ -135,7 +137,7 @@ class RecognizerRegistry:
                 ]
 
                 if not subset:
-                    logging.warning(
+                    logger.warning(
                         "Entity %s doesn't have the corresponding"
                         " recognizer in language : %s",
                         entity,
@@ -144,7 +146,7 @@ class RecognizerRegistry:
                 else:
                     to_return.extend(subset)
 
-        logging.info(
+        logger.debug(
             "Returning a total of %d recognizers (predefined + custom)", len(to_return)
         )
 
@@ -161,7 +163,7 @@ class RecognizerRegistry:
             return []
 
         if self.loaded_hash is not None:
-            logging.info(
+            logger.debug(
                 "Analyzer loaded custom recognizers on: %s [hash %s]",
                 time.strftime(
                     "%Y-%m-%d %H:%M:%S", time.localtime(int(self.loaded_timestamp))
@@ -169,12 +171,12 @@ class RecognizerRegistry:
                 self.loaded_hash,
             )
         else:
-            logging.info("Analyzer loaded custom recognizers on: Never")
+            logger.debug("Analyzer loaded custom recognizers on: Never")
 
         latest_hash = self.store_api.get_latest_hash()
         # is update time is not set, no custom recognizers in storage, skip
         if latest_hash:
-            logging.info("Persistent storage has hash: %s", latest_hash)
+            logger.debug("Persistent storage has hash: %s", latest_hash)
             # check if anything updated since last time
             if self.loaded_hash is None or latest_hash != self.loaded_hash:
                 self.loaded_timestamp = int(time.time())
@@ -182,14 +184,14 @@ class RecognizerRegistry:
 
                 self.loaded_custom_recognizers = []
                 # read all values
-                logging.info("Requesting custom recognizers from the storage...")
+                logger.debug("Requesting custom recognizers from the storage...")
 
                 raw_recognizers = self.store_api.get_all_recognizers()
                 if raw_recognizers is None or not raw_recognizers:
-                    logging.info("No custom recognizers found")
+                    logger.debug("No custom recognizers found")
                     return []
 
-                logging.info(
+                logger.debug(
                     "Found %d recognizers in the storage", len(raw_recognizers)
                 )
                 self.loaded_custom_recognizers = raw_recognizers
