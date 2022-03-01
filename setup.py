@@ -3,7 +3,8 @@ from os import path
 
 import setuptools
 
-__version__ = "0.3.dev"
+__version__ = "0.3.1"
+
 # parent_directory = os.path.abspath(os.path.join(path.abspath(path.dirname(__file__)), os.pardir))
 # with open(os.path.join(parent_directory, 'VERSION')) as version_file:
 #     __version__ = version_file.read().strip()
