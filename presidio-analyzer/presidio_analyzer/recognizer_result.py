@@ -69,7 +69,10 @@ class RecognizerResult:
 
 class RecognizerResultGroup(RecognizerResult):
     """
-    Class representing grouped results (i.e. column).
+    Class representing grouped results (i.e. column). For compatibilty, it
+    behaves like the single (best) result for all base class functions other
+    than to_json().
+
     TODO
         Determine behavior for comparisons across sets.
         Extend RecognizerResult to handle column-specific metadata (i.e. index)
@@ -82,6 +85,7 @@ class RecognizerResultGroup(RecognizerResult):
         self.recognizer_results = recognizer_results
         best_scoring = max(recognizer_results, key=lambda r: r.score)
         super().__init__(**best_scoring.__dict__)
+
 
     def to_json(self):
         return str({ 'recognizer_results' : [str(r) for r in self.recognizer_results]})

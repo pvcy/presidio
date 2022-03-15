@@ -1,5 +1,6 @@
 import json
 import uuid
+from collections.abc import Iterable
 
 from presidio_analyzer import PresidioLogger, RecognizerRegistry
 from presidio_analyzer.app_tracer import AppTracer
@@ -250,8 +251,12 @@ class AnalyzerEngine(analyze_pb2_grpc.AnalyzeServiceServicer):
             current_results = recognizer.analyze(entity_source,
                                                  entities=entities,
                                                  nlp_artifacts=nlp_artifacts)
-            if current_results:
+
+            if isinstance(current_results, Iterable):
                 results.extend(current_results)
+            elif current_results is not None:
+                # NB Special handling for RecognizerResultGroup
+                results.append(current_results)
 
         if trace:
             self.app_tracer.trace(correlation_id, json.dumps(
