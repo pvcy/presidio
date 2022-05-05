@@ -6,6 +6,7 @@ import re
 
 logger = PresidioLogger("presidio")
 
+
 @dataclass
 class EntitySource:
     """
@@ -35,9 +36,10 @@ class EntitySource:
         Apply the equivalent of str.replace across the source text.
         """
 
+
 class Column(EntitySource):
 
-    def __init__(self, series, sample_size=None, **kwargs):
+    def __init__(self, series, sample_size=None, randomizer_seed=None, **kwargs):
         if not sample_size:
             logger.warning(
                 "No sample size given, all rows will be analyzed "
@@ -45,7 +47,7 @@ class Column(EntitySource):
             col = series
         else:
             if sample_size <= len(series):
-                col = series.sample(sample_size)
+                col = series.sample(sample_size, random_state=randomizer_seed)
             else:
                 col = series
 
