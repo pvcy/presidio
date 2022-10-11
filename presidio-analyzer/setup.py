@@ -26,7 +26,7 @@ setuptools.setup(
     tests_require=['pytest', 'flake8==3.7.9', 'pylint==2.3.1'],
     install_requires=[
         'cython==0.29.26',
-        'spacy==2.3.7',
+        'spacy~=3.2',
         'regex==2019.12.17',
         'grpcio>=1.43.0',
         'protobuf>=3.19.1',
