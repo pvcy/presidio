@@ -2,6 +2,7 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from presidio_analyzer import RecognizerResultGroup, PresidioLogger
 from typing import Sequence, Optional
+import numpy as np
 import re
 
 logger = PresidioLogger("presidio")
@@ -44,12 +45,10 @@ class Column(EntitySource):
             logger.warning(
                 "No sample size given, all rows will be analyzed "
                 f"for Column name={series.name}")
-            col = series
-        else:
-            if sample_size <= len(series):
-                col = series.sample(sample_size, random_state=randomizer_seed)
-            else:
-                col = series
+
+        col = series.replace('', np.nan).dropna()
+        if sample_size and sample_size <= len(col):
+            col = col.sample(sample_size, random_state=randomizer_seed)
 
         # Process original and tokenized titles
         titles = (
