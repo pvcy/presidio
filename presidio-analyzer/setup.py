@@ -9,20 +9,22 @@ with open(os.path.join(parent_directory, 'VERSION')) as version_file:
     __version__ = version_file.read().strip()
 
 setuptools.setup(
-    name="presidio_analyzer",
+    name="pvcy_presidio_analyzer",
     version=__version__,
     description="Presidio analyzer package",
     # long_description=long_description,
     # long_description_content_type="text/markdown",
-    url="https://github.com/Microsoft/presidio",
+#    url="https://github.com/Microsoft/presidio",
+    url="https://github.com/pvcy/presidio",
     packages=[
-        'presidio_analyzer',
-        'presidio_analyzer.protobuf_models',
-        'presidio_analyzer.predefined_recognizers',
-        'presidio_analyzer.nlp_engine',
-        'presidio_analyzer.recognizer_registry'
+        'pvcy_presidio_analyzer',
+        'pvcy_presidio_analyzer.protobuf_models',
+        'pvcy_presidio_analyzer.predefined_recognizers',
+        'pvcy_presidio_analyzer.nlp_engine',
+        'pvcy_presidio_analyzer.recognizer_registry'
     ],
-    trusted_host=['pypi.org'],
+    package_dir={'pvcy_presidio_analyzer' : 'presidio_analyzer'},
+#    trusted_host=['pypi.org'],
     tests_require=['pytest', 'flake8==3.7.9', 'pylint==2.3.1'],
     install_requires=[
         'cython==0.29.26',
@@ -35,8 +37,8 @@ setuptools.setup(
     include_package_data=True,
     license='MIT',
     scripts=[
-        'presidio_analyzer/presidio-analyzer',
-        'presidio_analyzer/presidio-analyzer.bat',
+        'pvcy_presidio_analyzer/presidio-analyzer',
+        'pvcy_presidio_analyzer/presidio-analyzer.bat',
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
