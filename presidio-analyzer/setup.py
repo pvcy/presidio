@@ -17,11 +17,11 @@ setuptools.setup(
 #    url="https://github.com/Microsoft/presidio",
     url="https://github.com/pvcy/presidio",
     packages=[
-        'presidio_analyzer',
-        'presidio_analyzer.protobuf_models',
-        'presidio_analyzer.predefined_recognizers',
-        'presidio_analyzer.nlp_engine',
-        'presidio_analyzer.recognizer_registry'
+        'pvcy_presidio_analyzer',
+        'pvcy_presidio_analyzer.protobuf_models',
+        'pvcy_presidio_analyzer.predefined_recognizers',
+        'pvcy_presidio_analyzer.nlp_engine',
+        'pvcy_presidio_analyzer.recognizer_registry'
     ],
     package_dir={'pvcy_presidio_analyzer' : 'presidio_analyzer'},
 #    trusted_host=['pypi.org'],
